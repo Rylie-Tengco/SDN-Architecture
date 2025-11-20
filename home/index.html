@@ -42,6 +42,14 @@
         @keyframes dash {
             to { stroke-dashoffset: -1000; }
         }
+
+        /* New Flow Animation for Connectors */
+        @keyframes flowDrop {
+            0% { top: 0; opacity: 0; }
+            15% { opacity: 1; }
+            85% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
     </style>
 </head>
 <body>
@@ -175,38 +183,54 @@
                             <div className="relative flex flex-col items-center gap-0">
                                 
                                 {/* Layer 1: Application */}
-                                <LayerCard
-                                    layer={layers[0]}
-                                    isSelected={selectedLayer.id === layers[0].id}
+                                <LayerCard 
+                                    layer={layers[0]} 
+                                    isSelected={selectedLayer.id === layers[0].id} 
                                     onClick={() => handleLayerClick(layers[0])}
                                 />
 
                                 {/* Interface: Northbound */}
-                                <InterfaceConnector title="Northbound API (REST)" color="text-blue-500" />
+                                <InterfaceConnector 
+                                    title="Northbound API" 
+                                    subtitle="RESTful / Java"
+                                    color="text-blue-500" 
+                                    delay="0s"
+                                />
 
                                 {/* Layer 2: Controller */}
-                                <LayerCard
-                                    layer={layers[1]}
-                                    isSelected={selectedLayer.id === layers[1].id}
+                                <LayerCard 
+                                    layer={layers[1]} 
+                                    isSelected={selectedLayer.id === layers[1].id} 
                                     onClick={() => handleLayerClick(layers[1])}
                                 />
 
                                 {/* Interface: Southbound */}
-                                <InterfaceConnector title="Southbound API (OpenFlow)" color="text-emerald-500" />
+                                <InterfaceConnector 
+                                    title="Southbound API" 
+                                    subtitle="OpenFlow / NETCONF"
+                                    color="text-emerald-500" 
+                                    delay="1s"
+                                />
 
                                 {/* Layer 3: Infrastructure */}
-                                <LayerCard
-                                    layer={layers[2]}
-                                    isSelected={selectedLayer.id === layers[2].id}
+                                <LayerCard 
+                                    layer={layers[2]} 
+                                    isSelected={selectedLayer.id === layers[2].id} 
                                     onClick={() => handleLayerClick(layers[2])}
                                 />
 
                                 {/* Interface: Physical Link */}
-                                <div className="h-12 w-1 bg-gray-300"></div>
+                                <InterfaceConnector 
+                                    title="Physical Link" 
+                                    subtitle="Ethernet / Optical"
+                                    color="text-slate-400" 
+                                    delay="2s"
+                                    isSimple={true}
+                                />
 
                                 {/* Layer 4: End Devices */}
                                 <div className="w-full max-w-md">
-                                    <div
+                                    <div 
                                         className={`relative p-4 bg-white rounded-xl border-2 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md flex justify-between items-center gap-4
                                             ${selectedLayer.id === layers[3].id ? 'border-slate-600 ring-4 ring-slate-100 scale-105 z-10' : 'border-slate-200 hover:border-slate-400'}
                                         `}
@@ -318,13 +342,13 @@
         // Helper Component: Individual Layer Card
         function LayerCard({ layer, isSelected, onClick }) {
             return (
-                <div
+                <div 
                     onClick={onClick}
                     className={`
                         w-full max-w-md p-5 rounded-xl cursor-pointer transition-all duration-300 border-2 shadow-sm relative
                         group hover:shadow-lg hover:-translate-y-1
-                        ${isSelected
-                            ? `border-${layer.borderColor.split('-')[1]}-600 ring-4 ring-${layer.borderColor.split('-')[1]}-100 z-20 scale-105 bg-white`
+                        ${isSelected 
+                            ? `border-${layer.borderColor.split('-')[1]}-600 ring-4 ring-${layer.borderColor.split('-')[1]}-100 z-20 scale-105 bg-white` 
                             : 'bg-white border-gray-200 hover:border-gray-400 z-10'}
                     `}
                 >
@@ -364,16 +388,36 @@
         }
 
         // Helper Component: The Connectors (APIs)
-        function InterfaceConnector({ title, color }) {
+        function InterfaceConnector({ title, subtitle, color, delay = "0s", isSimple = false }) {
+            // Parse color base (e.g. 'text-blue-500' -> 'blue-500')
+            const colorBase = color.replace('text-', '');
+            const bgColor = `bg-${colorBase}`;
+            const borderColor = `border-${colorBase}`;
+
             return (
-                <div className="h-24 flex flex-col items-center justify-center relative group">
-                    <div className={`absolute left-full ml-4 text-xs font-mono font-bold whitespace-nowrap opacity-0 lg:group-hover:opacity-100 transition-opacity bg-gray-900 text-white px-2 py-1 rounded ${color.replace('text-', 'bg-').replace('500', '600')}`}>
-                        {title}
+                <div className="h-28 w-full flex flex-col items-center justify-center relative z-0 my-1">
+                    {/* The vertical line track */}
+                    <div className="absolute inset-y-0 w-0.5 bg-gray-100 rounded-full"></div>
+                    
+                    {/* Animated Flow Packet */}
+                    <div 
+                        className={`absolute w-3 h-3 rounded-full ${bgColor} shadow-sm z-10`}
+                        style={{ animation: `flowDrop 2s cubic-bezier(0.4, 0, 0.2, 1) infinite ${delay}` }}
+                    ></div>
+
+                    {/* Label Pill */}
+                    <div className={`relative bg-white px-4 py-1.5 rounded-full border shadow-sm flex flex-col items-center z-20 transition-transform hover:scale-105 ${borderColor}`}>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${color}`}>
+                            {title}
+                        </span>
+                        {!isSimple && (
+                            <span className="text-[9px] text-gray-400 font-mono mt-0.5">
+                                {subtitle}
+                            </span>
+                        )}
                     </div>
-                    <div className={`h-full w-0.5 border-l-2 border-dashed ${color} opacity-40 group-hover:opacity-100 transition-opacity`}></div>
-                    <div className={`absolute bg-white px-3 py-1 rounded-full border shadow-sm text-[10px] font-bold uppercase tracking-wider ${color.replace('text', 'border')} ${color}`}>
-                        {title.split(' ')[0]}
-                    </div>
+
+                    {/* Arrow at bottom */}
                     <div className={`absolute bottom-0 ${color}`}>
                         <Icons.ArrowDown />
                     </div>
