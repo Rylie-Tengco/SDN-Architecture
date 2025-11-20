@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDN Ecosystem Interactive Diagram</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .animate-pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .7; }
+        }
+        
+        .flow-line {
+            stroke-dasharray: 10;
+            animation: dash 20s linear infinite;
+        }
+        @keyframes dash {
+            to { stroke-dashoffset: -1000; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icons as SVG components for reliability
+        const Icons = {
+            App: () => <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
+            Brain: () => <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>,
+            Switch: () => <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>,
+            Device: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
+            ArrowDown: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>,
+            Close: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>,
+            Check: () => <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+        };
+
+        const layers = [
+            {
+                id: "application",
+                title: "Application Layer",
+                subtitle: "Business & Network Logic",
+                color: "bg-blue-600",
+                hoverColor: "hover:bg-blue-700",
+                borderColor: "border-blue-600",
+                textColor: "text-blue-600",
+                lightBg: "bg-blue-50",
+                icon: <Icons.App />,
+                description: "The topmost layer where business applications and network management tools reside. These applications define 'what' the network should do.",
+                components: ["Load Balancers", "Firewalls", "Traffic Monitors", "Intrusion Detection Systems (IDS)", "Cloud Orchestrators"],
+                techSpecs: {
+                    "Communication": "Communicates needs via REST APIs",
+                    "Focus": "High-level policy & Intent",
+                    "Examples": "OpenStack, OSS/BSS, Custom Python Apps"
+                }
+            },
+            {
+                id: "controller",
+                title: "Control Layer",
+                subtitle: "The Brain (SDN Controller)",
+                color: "bg-indigo-600",
+                hoverColor: "hover:bg-indigo-700",
+                borderColor: "border-indigo-600",
+                textColor: "text-indigo-600",
+                lightBg: "bg-indigo-50",
+                icon: <Icons.Brain />,
+                description: "The centralized intelligence of the network. It translates high-level application requirements into low-level instructions for the hardware.",
+                components: ["Topology Manager", "Flow Programmer", "Device Manager", "Policy Engine", "Statistics Collector"],
+                techSpecs: {
+                    "Core Function": "Global Network View & Flow Management",
+                    "Northbound Interface": "RESTful API (JSON/XML)",
+                    "Southbound Interface": "OpenFlow, NETCONF, OVSDB",
+                    "Examples": "OpenDaylight, ONOS, Ryu, Floodlight"
+                }
+            },
+            {
+                id: "infrastructure",
+                title: "Infrastructure Layer",
+                subtitle: "Data Plane (Switches & Routers)",
+                color: "bg-emerald-600",
+                hoverColor: "hover:bg-emerald-700",
+                borderColor: "border-emerald-600",
+                textColor: "text-emerald-600",
+                lightBg: "bg-emerald-50",
+                icon: <Icons.Switch />,
+                description: "The physical or virtual hardware that actually moves the data packets. These devices have no intelligence of their own; they obey the Controller.",
+                components: ["Physical Switches", "Virtual Switches (vSwitch)", "Routers", "Gateways"],
+                techSpecs: {
+                    "Action": "Packet Forwarding based on Flow Tables",
+                    "Protocol Support": "OpenFlow Agent",
+                    "Throughput": "High-speed Line-rate forwarding",
+                    "Examples": "Cisco Nexus, Open vSwitch (OVS), Whitebox Switches"
+                }
+            },
+            {
+                id: "end_devices",
+                title: "End Devices",
+                subtitle: "Consumers & Producers",
+                color: "bg-slate-600",
+                hoverColor: "hover:bg-slate-700",
+                borderColor: "border-slate-600",
+                textColor: "text-slate-600",
+                lightBg: "bg-slate-100",
+                icon: <Icons.Device />,
+                description: "The actual devices sending and receiving data. In an SDN environment, these devices are agnostic to the network complexity above them.",
+                components: ["User Laptops/Phones", "Servers / Virtual Machines", "IoT Sensors", "Printers", "Storage Units"],
+                techSpecs: {
+                    "Role": "Traffic Source/Destination",
+                    "Connectivity": "Ethernet / Wi-Fi",
+                    "Interaction": "Generates Packets",
+                    "Awareness": "Unaware of SDN logic"
+                }
+            }
+        ];
+
+        function App() {
+            const [selectedLayer, setSelectedLayer] = useState(layers[1]); // Default to Controller
+            const [isAnimating, setIsAnimating] = useState(false);
+
+            const handleLayerClick = (layer) => {
+                setIsAnimating(true);
+                setSelectedLayer(layer);
+                setTimeout(() => setIsAnimating(false), 300);
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col">
+                    {/* Header */}
+                    <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="bg-indigo-600 p-2 rounded-lg text-white">
+                                    <Icons.Brain />
+                                </div>
+                                <h1 className="text-xl font-bold text-gray-900">SDN Architect_Tengco</h1>
+                            </div>
+                            <div className="text-sm text-gray-500 hidden sm:block">
+                                Interactive Ecosystem Diagram
+                            </div>
+                        </div>
+                    </header>
+
+                    <main className="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8 gap-8 grid grid-cols-1 lg:grid-cols-12">
+                        
+                        {/* Left Column: The Diagram Stack */}
+                        <div className="lg:col-span-7 flex flex-col gap-4 justify-center relative py-8">
+                            
+                            {/* Diagram Container */}
+                            <div className="relative flex flex-col items-center gap-0">
+                                
+                                {/* Layer 1: Application */}
+                                <LayerCard
+                                    layer={layers[0]}
+                                    isSelected={selectedLayer.id === layers[0].id}
+                                    onClick={() => handleLayerClick(layers[0])}
+                                />
+
+                                {/* Interface: Northbound */}
+                                <InterfaceConnector title="Northbound API (REST)" color="text-blue-500" />
+
+                                {/* Layer 2: Controller */}
+                                <LayerCard
+                                    layer={layers[1]}
+                                    isSelected={selectedLayer.id === layers[1].id}
+                                    onClick={() => handleLayerClick(layers[1])}
+                                />
+
+                                {/* Interface: Southbound */}
+                                <InterfaceConnector title="Southbound API (OpenFlow)" color="text-emerald-500" />
+
+                                {/* Layer 3: Infrastructure */}
+                                <LayerCard
+                                    layer={layers[2]}
+                                    isSelected={selectedLayer.id === layers[2].id}
+                                    onClick={() => handleLayerClick(layers[2])}
+                                />
+
+                                {/* Interface: Physical Link */}
+                                <div className="h-12 w-1 bg-gray-300"></div>
+
+                                {/* Layer 4: End Devices */}
+                                <div className="w-full max-w-md">
+                                    <div
+                                        className={`relative p-4 bg-white rounded-xl border-2 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md flex justify-between items-center gap-4
+                                            ${selectedLayer.id === layers[3].id ? 'border-slate-600 ring-4 ring-slate-100 scale-105 z-10' : 'border-slate-200 hover:border-slate-400'}
+                                        `}
+                                        onClick={() => handleLayerClick(layers[3])}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className={`p-3 rounded-lg ${layers[3].lightBg} ${layers[3].textColor}`}>
+                                                {layers[3].icon}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-gray-900">{layers[3].title}</h3>
+                                                <p className="text-xs text-gray-500 uppercase tracking-wide">{layers[3].subtitle}</p>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Mini device icons representation */}
+                                        <div className="flex -space-x-2 overflow-hidden">
+                                            {[1,2,3].map(i => (
+                                                <div key={i} className="inline-block h-8 w-8 rounded-full ring-2 ring-white bg-slate-100 flex items-center justify-center text-slate-400">
+                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M13 7H7v6h6V7z" /><path fillRule="evenodd" d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h2a2 2 0 012 2v2h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v2a2 2 0 01-2 2h-2v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H5a2 2 0 01-2-2v-2H2a1 1 0 110-2h1v-2H2a1 1 0 110-2h1V7a2 2 0 012-2h2V2zM5 5h10v10H5V5z" clipRule="evenodd" /></svg>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            {/* Background Flow Animation (Decorative) */}
+                            <svg className="absolute inset-0 w-full h-full -z-10 opacity-20 pointer-events-none">
+                                <path className="flow-line" d="M 50% 100 V 0" stroke="url(#grad1)" strokeWidth="2" fill="none" />
+                                <defs>
+                                    <linearGradient id="grad1" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" style={{stopColor:"#3b82f6", stopOpacity:1}} />
+                                        <stop offset="50%" style={{stopColor:"#6366f1", stopOpacity:1}} />
+                                        <stop offset="100%" style={{stopColor:"#10b981", stopOpacity:1}} />
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+
+                        </div>
+
+                        {/* Right Column: Info Panel */}
+                        <div className="lg:col-span-5">
+                            <div className={`sticky top-24 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transition-all duration-300 ${isAnimating ? 'opacity-50 scale-95' : 'opacity-100 scale-100'}`}>
+                                
+                                {/* Header of Info Panel */}
+                                <div className={`${selectedLayer.color} p-6 text-white`}>
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                                            {selectedLayer.icon}
+                                        </div>
+                                        <h2 className="text-2xl font-bold">{selectedLayer.title}</h2>
+                                    </div>
+                                    <p className="text-white/90 font-medium">{selectedLayer.subtitle}</p>
+                                </div>
+
+                                {/* Body of Info Panel */}
+                                <div className="p-6 space-y-6">
+                                    
+                                    <div>
+                                        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                            <span className={`w-2 h-2 rounded-full ${selectedLayer.color}`}></span>
+                                            Overview
+                                        </h3>
+                                        <p className="text-gray-600 leading-relaxed">
+                                            {selectedLayer.description}
+                                        </p>
+                                    </div>
+
+                                    {/* Technical Specs Grid */}
+                                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                                        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Technical Specs</h3>
+                                        <div className="space-y-3">
+                                            {Object.entries(selectedLayer.techSpecs).map(([key, value]) => (
+                                                <div key={key} className="flex flex-col sm:flex-row sm:justify-between sm:items-center text-sm border-b border-gray-200 last:border-0 pb-2 last:pb-0">
+                                                    <span className="text-gray-500 font-medium">{key}</span>
+                                                    <span className="text-gray-900 font-mono text-right">{value}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Components List */}
+                                    <div>
+                                        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Key Components</h3>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {selectedLayer.components.map((comp, idx) => (
+                                                <div key={idx} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                                    <Icons.Check />
+                                                    <span className="text-gray-700 text-sm">{comp}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                </div>
+                                
+                                <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 text-xs text-center text-gray-400">
+                                    Click other layers in the diagram to view their details
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        }
+
+        // Helper Component: Individual Layer Card
+        function LayerCard({ layer, isSelected, onClick }) {
+            return (
+                <div
+                    onClick={onClick}
+                    className={`
+                        w-full max-w-md p-5 rounded-xl cursor-pointer transition-all duration-300 border-2 shadow-sm relative
+                        group hover:shadow-lg hover:-translate-y-1
+                        ${isSelected
+                            ? `border-${layer.borderColor.split('-')[1]}-600 ring-4 ring-${layer.borderColor.split('-')[1]}-100 z-20 scale-105 bg-white`
+                            : 'bg-white border-gray-200 hover:border-gray-400 z-10'}
+                    `}
+                >
+                    {/* Visual Indicator for Selection */}
+                    {isSelected && (
+                        <div className={`absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-12 rounded-r-full ${layer.color}`}></div>
+                    )}
+
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            {/* Icon Box */}
+                            <div className={`
+                                w-12 h-12 rounded-lg flex items-center justify-center transition-colors duration-300
+                                ${isSelected ? `${layer.lightBg} ${layer.textColor}` : 'bg-gray-100 text-gray-400 group-hover:text-gray-600'}
+                            `}>
+                                {layer.icon}
+                            </div>
+                            
+                            {/* Text Info */}
+                            <div>
+                                <h3 className={`font-bold text-lg ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
+                                    {layer.title}
+                                </h3>
+                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                    {layer.subtitle}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Arrow Hint */}
+                        <div className={`transition-opacity duration-300 ${isSelected ? 'opacity-100 text-gray-400' : 'opacity-0'}`}>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Helper Component: The Connectors (APIs)
+        function InterfaceConnector({ title, color }) {
+            return (
+                <div className="h-24 flex flex-col items-center justify-center relative group">
+                    <div className={`absolute left-full ml-4 text-xs font-mono font-bold whitespace-nowrap opacity-0 lg:group-hover:opacity-100 transition-opacity bg-gray-900 text-white px-2 py-1 rounded ${color.replace('text-', 'bg-').replace('500', '600')}`}>
+                        {title}
+                    </div>
+                    <div className={`h-full w-0.5 border-l-2 border-dashed ${color} opacity-40 group-hover:opacity-100 transition-opacity`}></div>
+                    <div className={`absolute bg-white px-3 py-1 rounded-full border shadow-sm text-[10px] font-bold uppercase tracking-wider ${color.replace('text', 'border')} ${color}`}>
+                        {title.split(' ')[0]}
+                    </div>
+                    <div className={`absolute bottom-0 ${color}`}>
+                        <Icons.ArrowDown />
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
